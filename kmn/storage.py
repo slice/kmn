@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 
@@ -5,6 +6,7 @@ class JSONStorage:
     def __init__(self, file_name: str, *, loop):
         self.file_name = file_name
         self.loop = loop
+        self._lock = asyncio.Lock()
 
         try:
             with open(self.file_name, 'r') as fp:
@@ -18,7 +20,8 @@ class JSONStorage:
 
     async def save(self):
         """Saves the data."""
-        await self.loop.run_in_executor(None, self._save)
+        async with self._lock:
+            await self.loop.run_in_executor(None, self._save)
 
     async def put(self, key, value):
         """Puts data."""
