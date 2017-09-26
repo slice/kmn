@@ -6,6 +6,7 @@ from discord.ext.commands import Bot as DiscordBot, when_mentioned_or, errors
 from kmn.context import Context
 from kmn.errors import CommandFailure
 from kmn.formatter import Formatter
+from kmn.storage import JSONStorage
 
 log = logging.getLogger(__name__)
 DESCRIPTION = """a super neat bot by slice#4274"""
@@ -13,8 +14,10 @@ DESCRIPTION = """a super neat bot by slice#4274"""
 
 class Bot(DiscordBot):
     def __init__(self, *, config):
+        prefixes = config.get('prefixes', ['k~', 'k!'])
+
         super().__init__(
-            command_prefix=when_mentioned_or('k~', 'k!', 'k?'),
+            command_prefix=when_mentioned_or(*prefixes),
             pm_help=None,
             formatter=Formatter(),
             description=DESCRIPTION
@@ -26,6 +29,8 @@ class Bot(DiscordBot):
         # store config
         self.config = config
 
+        self.blocked = JSONStorage('_blocked.json', loop=self.loop)
+
         # load all cogs
         for cog in self.config.get('cogs', []):
             self.load_extension('kmn.cogs.{}'.format(cog))
@@ -36,6 +41,9 @@ class Bot(DiscordBot):
     async def on_message(self, message):
         # ignore bots
         if message.author.bot:
+            return
+
+        if self.blocked.get(str(message.author.id)):
             return
 
         # invoke context

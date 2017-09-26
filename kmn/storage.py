@@ -18,6 +18,11 @@ class JSONStorage:
         with open(self.file_name, 'w') as fp:
             json.dump(self._data, fp)
 
+    async def delete(self, key):
+        """Deletes some data."""
+        del self._data[key]
+        await self.save()
+
     async def save(self):
         """Saves the data."""
         async with self._lock:

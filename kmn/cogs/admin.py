@@ -1,5 +1,6 @@
 import logging
 
+import discord
 from discord.ext.commands import command
 
 from kmn.checks import is_bot_admin
@@ -16,6 +17,23 @@ class Admin(Cog):
         """kills me"""
         await ctx.send('ok, bye.')
         await ctx.bot.logout()
+
+    @command(hidden=True)
+    @is_bot_admin()
+    async def block(self, ctx, who: discord.User):
+        """blocks someone"""
+        await ctx.bot.blocked.put(str(who.id), True)
+        await ctx.send(f'\N{OK HAND SIGN} blocked {who}.')
+
+    @command(hidden=True)
+    @is_bot_admin()
+    async def unblock(self, ctx, who: discord.User):
+        """unblocks someone"""
+        try:
+            await ctx.bot.blocked.delete(str(who.id))
+        except KeyError:
+            pass
+        await ctx.send(f'\N{OK HAND SIGN} unblocked {who}.')
 
     @command()
     @is_bot_admin()
