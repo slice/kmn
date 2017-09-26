@@ -2,6 +2,8 @@ import arrow
 import arrow.parser
 
 import discord
+import time
+from discord import Status
 from discord.ext.commands import group, command
 
 from kmn.checks import is_bot_admin
@@ -14,6 +16,14 @@ class Timezone(Cog):
     def __init__(self, bot):
         super().__init__(bot)
         self.storage = JSONStorage('_timezones.json', loop=bot.loop)
+        self.last_message = JSONStorage('_last_message.json', loop=bot.loop)
+
+    async def on_message(self, msg):
+        if msg.author.bot:
+            return
+
+        # put
+        await self.last_message.put(str(msg.author.id), time.time())
 
     def time_for(self, who):
         timezone = self.storage.get(str(who.id), None)
@@ -25,6 +35,12 @@ class Timezone(Cog):
 
     def format_arrow(self, time):
         return time.format('MMM ddd YYYY-MM-DD HH:mm:ss (hh:mm:ss a)')
+
+    def recently_spoke(self, who):
+        last_spoke = self.last_message.get(str(who.id), 0)
+        time_since_last = time.time() - last_spoke
+
+        return time_since_last <= 60
 
     def check_timezone(self, timezone):
         try:
@@ -40,7 +56,7 @@ class Timezone(Cog):
         await ctx.send(f'`{raw_timezone}`: {self.format_arrow(time)}')
 
     @command()
-    async def sleep(self, ctx, *, who: discord.User=None):
+    async def sleep(self, ctx, *, who: discord.Member=None):
         """tells someone to sleep maybe"""
         who = who or ctx.author
 
@@ -54,6 +70,8 @@ class Timezone(Cog):
         time_formatted = time.format('hh:mm a') if 'US' in raw else time.format('HH:mm')
 
         if time.hour in {23, 24, 0, 1, 2, 3, 4, 5}:
+            if who.status is not Status.online and not self.recently_spoke(who):
+                return await ctx.send(f"{who} isn't online, they're probably sleeping.")
             await ctx.send(f"hey {who.mention}, it's {time_formatted}. you should sleep.")
         else:
             await ctx.send(f"{subject} don't need to sleep (it's {time_formatted} for {subject_external}).")
