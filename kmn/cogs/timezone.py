@@ -4,7 +4,7 @@ import arrow.parser
 import discord
 import time
 from discord import Status
-from discord.ext.commands import group, command
+from discord.ext.commands import group, command, clean_content
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
@@ -43,6 +43,9 @@ class Timezone(Cog):
         return time_since_last <= 60
 
     def check_timezone(self, timezone):
+        if any(character in timezone for character in ['`', '@', '#']) or len(timezone) > 20:
+            raise CommandFailure('that looks like an invalid timezone.')
+
         try:
             arrow.utcnow().to(timezone)
         except arrow.parser.ParserError:
@@ -85,7 +88,7 @@ class Timezone(Cog):
         await ctx.send(f"\N{OK HAND SIGN} set {who}'s timezone to `{timezone}`.")
 
     @time.command(brief="sets your timezone")
-    async def set(self, ctx, *, timezone=None):
+    async def set(self, ctx, *, timezone: clean_content=None):
         """sets your timezone (interactive)
 
         if you provide a timezone in the command, it won't be interactive"""
