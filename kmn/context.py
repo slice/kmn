@@ -7,7 +7,7 @@ class Context(DiscordContext):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    async def confirm(self, **kwargs):
+    async def confirm(self, delete=True, **kwargs):
         embed = Embed(**kwargs, color=Color.red())
 
         # send embed
@@ -42,6 +42,8 @@ class Context(DiscordContext):
 
             truth_value = reactions.get(reaction.emoji, None)
 
-            if truth_value is not None:
+            if truth_value is not None and delete is True:
                 await message.delete()
                 return truth_value
+            elif truth_value is not None and delete is False:
+                return truth_value, message
