@@ -14,8 +14,8 @@ from kmn.storage import JSONStorage
 
 class HourStyle:
     """Hour styles."""
-    MILITARY = 0 # (24-hour)
-    AMERICAN = 1 # (12-hour)
+    MILITARY = 0  # (24-hour)
+    AMERICAN = 1  # (12-hour)
 
 
 TIMEZONE_QUERY = """use `{prefix}t set <timezone>` to set your timezone. with this set, others can check what
