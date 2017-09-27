@@ -1,7 +1,8 @@
 import logging
+from time import monotonic
 
 import discord
-from discord.ext.commands import command
+from discord.ext.commands import command, cooldown, BucketType
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
@@ -17,6 +18,15 @@ class Admin(Cog):
         """kills me"""
         await ctx.send('ok, bye.')
         await ctx.bot.logout()
+
+    @command()
+    @cooldown(rate=1, per=2, type=BucketType.user)
+    async def ping(self, ctx):
+        """pong"""
+        before = monotonic()
+        message = await ctx.send('po—')
+        after = monotonic()
+        await message.edit(content=f'pong! `{round((after - before) * 1000, 2)}ms`')
 
     @command(hidden=True)
     @is_bot_admin()
