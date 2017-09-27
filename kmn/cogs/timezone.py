@@ -152,7 +152,7 @@ class Timezone(Cog):
             await ctx.send('\N{OK HAND SIGN} set your style to 24-hour.')
         elif style in {'reset', 'inferred'}:
             try:
-                del self.hour_storage[str(ctx.author.id)]
+                await self.hour_storage.delete(str(ctx.author.id))
             except KeyError:
                 pass
             await ctx.send('\N{OK HAND SIGN} removed your preference.')
