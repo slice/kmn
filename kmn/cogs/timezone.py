@@ -1,8 +1,8 @@
+import time
+
 import arrow
 import arrow.parser
-
 import discord
-import time
 from discord import Status
 from discord.ext.commands import group, command, clean_content
 
@@ -12,11 +12,42 @@ from kmn.errors import CommandFailure
 from kmn.storage import JSONStorage
 
 
+class HourStyle:
+    """Hour styles."""
+    MILITARY = 0 # (24-hour)
+    AMERICAN = 1 # (12-hour)
+
+
+TIMEZONE_QUERY = """use `{prefix}t set <timezone>` to set your timezone. with this set, others can check what
+time it is for you with `{prefix}t <user>`.
+
+common timezones:
+
+`REGION                 NAME (TYPE)     UTC OFFSET             ATTRIB`
+`eastern united states  US/Eastern    | (-05:00, -04:00 DST) | smart |`
+`central united states  US/Central    | (-06:00, -05:00 DST) | smart |`
+`western united states  US/Pacific    | (-08:00, -07:00 DST) | smart |`
+`london                 Europe/London | (+00:00, +01:00 DST) | smart |`
+`western european       WET           | (+00:00, +01:00 DST) |       |`
+`central european       MET           | (+01:00, +02:00 DST) |       |`
+`gmt-8                  Etc/GMT-8     | (+08:00, +08:00 DST) |       |`
+
+you want to type what's in the `NAME` column. a full list of timezones is here:
+<https://goo.gl/yQNfZU> type what's under `TZ*`.
+
+setting a manual utc offset (such as `-07:00`, `+08:00`) will prevent automatic daylight saving time
+detection, and will force 24-hour mode.
+"""
+
+
 class Timezone(Cog):
     def __init__(self, bot):
         super().__init__(bot)
+
+        # storages
         self.storage = JSONStorage('_timezones.json', loop=bot.loop)
         self.last_message = JSONStorage('_last_message.json', loop=bot.loop)
+        self.hour_storage = JSONStorage('_hour_pref.json', loop=bot.loop)
 
     async def on_message(self, msg):
         if msg.author.bot:
@@ -51,6 +82,21 @@ class Timezone(Cog):
         except arrow.parser.ParserError:
             raise CommandFailure('invalid timezone.')
 
+    def format_hour_minute(self, who):
+        raw, time = self.time_for(who)
+        preference = self.hour_storage.get(str(who.id))
+
+        american = 'hh:mm a'
+        military = 'HH:mm'
+
+        if preference == HourStyle.AMERICAN:
+            return time.format(american)
+        elif preference == HourStyle.MILITARY:
+            return time.format(military)
+        else:
+            # infer
+            return time.format(american if 'US' in raw else military)
+
     @group(aliases=['t'], invoke_without_command=True, brief="shows the time for someone")
     async def time(self, ctx, *, who: discord.User=None):
         """command group about time"""
@@ -67,10 +113,10 @@ class Timezone(Cog):
         subject_external = 'you' if who == ctx.author else 'them'
 
         # get the time for the person
-        raw, time = self.time_for(who)
+        _, time = self.time_for(who)
 
         # format the time for their timezone
-        time_formatted = time.format('hh:mm a') if 'US' in raw else time.format('HH:mm')
+        time_formatted = self.format_hour_minute(who)
 
         if time.hour in {23, 24, 0, 1, 2, 3, 4, 5}:
             if who.status is not Status.online and not self.recently_spoke(who):
@@ -87,43 +133,39 @@ class Timezone(Cog):
         await self.storage.put(str(who.id), timezone)
         await ctx.send(f"\N{OK HAND SIGN} set {who}'s timezone to `{timezone}`.")
 
-    @time.command(brief="sets your timezone")
+    @time.command()
+    async def hour(self, ctx, *, style):
+        """
+        sets your hour style (12 hour or 24 hour)
+
+        if you have no hour style, i'll try to guess depending on your timezone. usually, this is a bad
+        guess, so you should set it here.
+        """
+        twelve = {'12 hour', '12', '12-hour', '12h', 'american'}
+        military = {'24 hour', '24', '24-hour', '24h', 'military'}
+
+        if style in twelve:
+            await self.hour_storage.put(str(ctx.author.id), HourStyle.AMERICAN)
+            await ctx.send('\N{OK HAND SIGN} set your style to 12-hour.')
+        elif style in military:
+            await self.hour_storage.put(str(ctx.author.id), HourStyle.MILITARY)
+            await ctx.send('\N{OK HAND SIGN} set your style to 24-hour.')
+        elif style in {'reset', 'inferred'}:
+            try:
+                del self.hour_storage[str(ctx.author.id)]
+            except KeyError:
+                pass
+            await ctx.send('\N{OK HAND SIGN} removed your preference.')
+        else:
+            await ctx.send('unknown hour style! (send `12h` or `24h`).')
+
+    @time.command()
     async def set(self, ctx, *, timezone: clean_content=None):
-        """sets your timezone (interactive)
-
-        if you provide a timezone in the command, it won't be interactive"""
-
-        # confirm overwriting
-        if self.storage.get(str(ctx.author.id), None):
-            if not await ctx.confirm(title='Overwrite your timezone?', description='You already have one set.'):
-                return
+        """sets your timezone"""
 
         if not timezone:
-            # we interactive now
-            await ctx.send("what timezone are you in?\n\nyou can send a timezone name (list here: "
-                           "<https://en.wikipedia.org/wiki/List_of_tz_database_time_zones>) or in ISO-8601 "
-                           "style (e.g. `-07:00`). send `cancel` to cancel.")
-
-            while True:
-                # wait for a message
-                message = await ctx.bot.wait_for('message',
-                                                 check=lambda m: m.author == ctx.author and m.channel == ctx.channel)
-
-                # bail
-                if message.content == 'cancel':
-                    return await ctx.send('ok, bye.')
-
-                try:
-                    # check timezone
-                    self.check_timezone(message.content)
-                except CommandFailure as failure:
-                    # don't return, just send it and continue
-                    await ctx.send(str(failure))
-                    continue
-
-                # store
-                timezone = message.content
-                break
+            # send some help
+            return await ctx.send(TIMEZONE_QUERY.format(prefix=ctx.prefix))
 
         # check the timezone
         self.check_timezone(timezone)
