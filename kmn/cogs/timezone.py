@@ -95,12 +95,23 @@ class Timezone(Cog):
 
         # confirm overwriting
         if self.storage.get(str(ctx.author.id), None):
-            if not await ctx.confirm(title='Overwrite your timezone?', description='You already have one set.'):
+            confirm = await ctx.confirm(delete=False,
+                                        title='Overwrite your timezone?',
+                                        description='You already have one set.')
+            assert isinstance(confirm[1], discord.Message)
+            if not confirm[0]:
                 return
+        else:
+            confirm = False
 
         if not timezone:
             # we interactive now
-            await ctx.send("what timezone are you in?\n\nyou can send a timezone name (list here: "
+            if confirm is not False:
+                await confirm[1].edit(content="what timezone are you in?\n\nyou can send a timezone name (list here: "
+                           "<https://en.wikipedia.org/wiki/List_of_tz_database_time_zones>) or in ISO-8601 "
+                           "style (e.g. `-07:00`). send `cancel` to cancel.", embed=None)
+            else:
+                await ctx.send("what timezone are you in?\n\nyou can send a timezone name (list here: "
                            "<https://en.wikipedia.org/wiki/List_of_tz_database_time_zones>) or in ISO-8601 "
                            "style (e.g. `-07:00`). send `cancel` to cancel.")
 
@@ -130,9 +141,12 @@ class Timezone(Cog):
 
         # put into storage
         await self.storage.put(str(ctx.author.id), timezone)
-
         # ok
-        await ctx.send(f'ok, your timezone was set to `{timezone}`.')
+        if confirm is not None:
+            await confirm[1].edit(content=f'ok, your timezone was set to `{timezone}`.',
+                                  embed=None)
+        else:
+            ctx.send(f'ok, your timezone was set to `{timezone}`.')
 
 
 def setup(bot):
