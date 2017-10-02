@@ -1,3 +1,4 @@
+import json
 import logging
 import traceback
 
@@ -34,6 +35,11 @@ class Bot(DiscordBot):
         # load all cogs
         for cog in self.config.get('cogs', []):
             self.load_extension('kmn.cogs.{}'.format(cog))
+
+    async def save_config(self):
+        with open('config.json', 'w') as fp:
+            json.dump(self.config, fp)
+        log.info('saved configuration')
 
     async def on_ready(self):
         log.info('logged in as %s (%d)', self.user, self.user.id)

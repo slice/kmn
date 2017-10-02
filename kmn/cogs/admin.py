@@ -30,6 +30,14 @@ class Admin(Cog):
         await ctx.send(embed=embed)
 
     @command(hidden=True)
+    @is_bot_admin()
+    async def promote(self, ctx, *, who: discord.User):
+        """make someone global admin (danger!!)"""
+        self.bot.config['admins'].append(who.id)
+        await self.bot.save_config()
+        await ctx.send(f'\N{OK HAND SIGN} made {who} a global admin.')
+
+    @command(hidden=True)
     @cooldown(rate=1, per=2, type=BucketType.user)
     async def ping(self, ctx):
         """pong"""
