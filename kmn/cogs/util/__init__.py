@@ -28,7 +28,7 @@ class Utilities(Cog):
         embed = Embed(title=pick(info['domain_name']).lower(), color=Color.blurple())
 
         # grab registrar
-        registrar = pick(info['registrar']).lower()
+        registrar = pick(info.get('registrar', 'unknown registrar')).lower()
 
         if registrar == 'enom, inc.':
             registrar += ' (namecheap)'
