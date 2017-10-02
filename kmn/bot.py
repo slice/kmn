@@ -59,7 +59,9 @@ class Bot(DiscordBot):
             await ctx.send("you can't do that in a direct message.")
         elif isinstance(error, errors.CommandInvokeError):
             if isinstance(error.original, CommandFailure):
-                return await ctx.send(str(error.original))
+                message = str(error.original)\
+                    .format(prefix=ctx.prefix)
+                return await ctx.send(message)
 
             formatted_traceback = ''.join(traceback.format_exception(type(error), error, error.__traceback__, limit=7))
             log.fatal('Command invoke error: %s', formatted_traceback)
