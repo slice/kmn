@@ -1,11 +1,9 @@
 import datetime
-import functools
 
-import discord
 import whois
 import whois.parser
-from discord.ext.commands import command
 from discord import Embed, Color
+from discord.ext.commands import command
 
 from kmn.cog import Cog
 
@@ -54,7 +52,6 @@ class Utilities(Cog):
         add_date_field(key='expiration_date', name='expires')
 
         await ctx.send(embed=embed)
-
 
 
 def setup(bot):
