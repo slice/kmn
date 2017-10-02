@@ -120,9 +120,6 @@ class Currency(Cog):
         if wallet < amount:
             raise CommandFailure("you don't have enough...")
 
-        # deduct from balance
-        await self.bank.write(ctx.author, wallet - amount)
-
         try:
             # grab wallet of target
             target_wallet = await self.bank.wallet(target)
@@ -130,6 +127,9 @@ class Currency(Cog):
             # target doesn't have an account.
             raise CommandFailure(f"{target} doesn't have an account. make them create one with `"
                                  f"{ctx.prefix}register`.")
+
+        # deduct from balance
+        await self.bank.write(ctx.author, wallet - amount)
 
         # write!
         await self.bank.write(target, target_wallet + amount)
