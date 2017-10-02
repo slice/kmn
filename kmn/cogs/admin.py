@@ -2,10 +2,12 @@ import logging
 from time import monotonic
 
 import discord
+from discord import Embed, Color
 from discord.ext.commands import command, cooldown, BucketType
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
+from kmn.formatting import format_list
 from kmn.utils import timed
 
 log = logging.getLogger(__name__)
@@ -20,6 +22,14 @@ class Admin(Cog):
         await ctx.bot.logout()
 
     @command()
+    async def about(self, ctx):
+        """about me!"""
+        embed = Embed(title=str(self.bot.user), color=Color.blurple(), description="i'm a cool bot")
+        admins = format_list(self.bot.config.get('admins', []), format='<@{item}>')
+        embed.add_field(name='admins', value=admins)
+        await ctx.send(embed=embed)
+
+    @command(hidden=True)
     @cooldown(rate=1, per=2, type=BucketType.user)
     async def ping(self, ctx):
         """pong"""
