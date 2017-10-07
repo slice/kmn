@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 
 
 class JSONStorage:
@@ -15,8 +16,12 @@ class JSONStorage:
             self._data = {}
 
     def _save(self):
-        with open(self.file_name, 'w') as fp:
+        filename = self.file_name + '.save'
+        with open(filename, 'w') as fp:
             json.dump(self._data, fp)
+
+        os.rename(filename, self.file_name)
+        os.remove(filename)
 
     async def delete(self, key):
         """Deletes some data."""
