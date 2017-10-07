@@ -12,6 +12,21 @@ class GuildConfig:
         with await self.redis as conn:
             await conn.set(GUILD_KEY.format(self.guild, key), value)
 
+    async def is_set(self, key):
+        with await self.redis as conn:
+            result = (await conn.get(GUILD_KEY.format(self.guild, key)))
+
+            if result is None:
+                return False
+
+            result = result.decode()
+
+            # disabled
+            if result in {'off', 'false'}:
+                return False
+
+            return True
+
     async def get(self, key, *, cast=None):
         with await self.redis as conn:
             result = (await conn.get(GUILD_KEY.format(self.guild, key))).decode()
