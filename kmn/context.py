@@ -43,6 +43,12 @@ class Context(DiscordContext):
         # database connection
         self.db = None
 
+    async def ok(self, emoji='\N{OK HAND SIGN}'):
+        try:
+            await self.message.add_reaction(emoji)
+        except:
+            await self.send(emoji)
+
     async def _acquire(self, timeout):
         if self.db is None:
             self.db = await self.postgres.acquire(timeout=timeout)
