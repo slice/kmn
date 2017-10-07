@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import shlex
 from time import monotonic
 
 import discord
@@ -7,10 +9,18 @@ from discord.ext.commands import command, cooldown, BucketType
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
-from kmn.formatting import format_list
+from kmn.formatting import format_list, codeblock
 from kmn.utils import timed
 
 log = logging.getLogger(__name__)
+
+
+async def shell(command):
+    shell = await asyncio.create_subprocess_shell(
+        command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    )
+    results = await shell.communicate()
+    return ''.join(x.decode('utf-8') for x in results)
 
 
 class Admin(Cog):
@@ -28,6 +38,13 @@ class Admin(Cog):
         admins = format_list(self.bot.config.get('admins', []), format='<@{item}>')
         embed.add_field(name='admins', value=admins)
         await ctx.send(embed=embed)
+
+    @command(hidden=True)
+    @is_bot_admin()
+    async def shell(self, ctx, *, command):
+        """run something in bash"""
+        result = await shell(command)
+        await ctx.send(codeblock(result))
 
     @command(hidden=True)
     @is_bot_admin()
