@@ -46,7 +46,7 @@ class Bot(DiscordBot):
 
     async def save_config(self):
         with open('config.json', 'w') as fp:
-            json.dump(self.config, fp)
+            json.dump(self.config, fp, indent=2)
         log.info('saved configuration')
 
     async def on_ready(self):
