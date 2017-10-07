@@ -31,12 +31,21 @@ class Bank:
         account = self.storage.get(str(user.id))
 
         if not account:
-            raise CommandFailure('you have no account, create one with `{prefix}register`.')
+            raise CommandFailure('you have no account, create one '
+                                 'with `{prefix}register`.')
 
         return account
 
-    async def wallet(self, user):
+    def wallet(self, user):
         return self.get_account(user)['wallet']
+
+    async def transfer(self, from_user, to_user, amount):
+        """Transfer money between two accounts"""
+        from_wallet = self.wallet(from_user)
+        to_wallet = self.wallet(to_user)
+
+        await self.write(from_user, from_wallet - amount)
+        await self.write(to_user, to_wallet + amount)
 
 
 class Currency(Cog):
@@ -49,7 +58,7 @@ class Currency(Cog):
     async def wallet(self, ctx, who: discord.User=None):
         """view your balance"""
         who = who or ctx.author
-        balance = await self.bank.wallet(who)
+        balance = self.bank.wallet(who)
         await ctx.send(f'{who} \N{RIGHTWARDS ARROW} `{balance:.2f}bc`')
 
     @command()
@@ -57,7 +66,8 @@ class Currency(Cog):
     async def write(self, ctx, user: discord.User, amount: float):
         """write someone's wallet lol"""
         await self.bank.write(user, amount)
-        await ctx.send(f'\N{OK HAND SIGN} {user} \N{RIGHTWARDS ARROW} `{amount:.2f}bc`')
+        await ctx.send(f'\N{OK HAND SIGN} {user} \N{RIGHTWARDS ARROW}'
+                       f' `{amount:.2f}bc`')
 
     @command()
     async def steal(self, ctx, target: discord.User, amount: float):
@@ -70,19 +80,21 @@ class Currency(Cog):
             raise CommandFailure("you're stealing too much. `80.0bc` max pls.")
 
         # grab thief wallet
-        thief_wallet = await self.bank.wallet(ctx.author)
+        thief_wallet = self.bank.wallet(ctx.author)
 
         # check wallet
-        target_wallet = await self.bank.wallet(target)
+        target_wallet = self.bank.wallet(target)
         if amount > target_wallet:
-            raise CommandFailure("that person doesn't have the money you want. look for someone else.")
+            raise CommandFailure("that person doesn't have the "
+                                 "money you want. look for someone else.")
 
         # can't steal more than 50%
         percentage_of_steal = amount / target_wallet
         if percentage_of_steal > 0.5:
             amount = target_wallet * 0.5
             raise CommandFailure(
-                f"you can't steal more than 50% of someone's wallet. the max you can steal from {target} is"
+                f"you can't steal more than 50% of someone's wallet. "
+                f"the max you can steal from {target} is"
                 f" `{amount:.2f}bc`."
             )
 
@@ -90,21 +102,22 @@ class Currency(Cog):
         chance = uniform(0, potential)
 
         if amount < chance:
-            await self.bank.write(target, target_wallet - amount)
-            await self.bank.write(ctx.author, thief_wallet + amount)
+            await self.bank.transfer(target, ctx.author, amount)
             await ctx.send(
                 f'\N{PISTOL} ouch. {ctx.author} \N{RIGHTWARDS ARROW} `{amount:.2f}bc`'
                 f'\n\n[amount:`{amount}` < rolled:`{chance:.2f}`] chance = `{potential:.2f}`'
             )
         else:
             if thief_wallet == 0:
-                return await ctx.send('\N{ONCOMING POLICE CAR} oops, you failed.')
+                return await ctx.send('\N{ONCOMING POLICE CAR} '
+                                      'oops, you failed.')
 
             penalty = min(amount * 1.5, thief_wallet)
             percentage = penalty / thief_wallet
             await self.bank.write(ctx.author, thief_wallet - penalty)
             await ctx.send(
-                f'\N{ONCOMING POLICE CAR} oops, you failed. you have lost `{penalty:.2f}bc`'
+                f'\N{ONCOMING POLICE CAR} oops, you failed. '
+                f'you have lost `{penalty:.2f}bc`'
                 f' ({percentage * 100:.2f}% of your total wallet).'
             )
 
@@ -115,30 +128,29 @@ class Currency(Cog):
         if target == ctx.author:
             raise CommandFailure('what')
 
-        wallet = await self.bank.wallet(ctx.author)
+        wallet = self.bank.wallet(ctx.author)
 
         if wallet < amount:
             raise CommandFailure("you don't have enough...")
 
+        # We don't need the target wallet in a variable
+        # because Bank.transfer already handles this for us.
         try:
-            # grab wallet of target
-            target_wallet = await self.bank.wallet(target)
+            self.bank.wallet(target)
         except CommandFailure:
             # target doesn't have an account.
             raise CommandFailure(f"{target} doesn't have an account. make them create one with `"
                                  f"{ctx.prefix}register`.")
 
-        # deduct from balance
-        await self.bank.write(ctx.author, wallet - amount)
+        await self.bank.transfer(ctx.author, target, amount)
 
-        # write!
-        await self.bank.write(target, target_wallet + amount)
-
-        await ctx.send(f'\N{MONEY WITH WINGS} {ctx.author} `--[ {amount:.2f}bc ]-->` {target}')
+        await ctx.send(f'\N{MONEY WITH WINGS} {ctx.author} '
+                       f'`--[ {amount:.2f}bc ]-->` {target}')
 
         try:
             await target.send(
-                f'\N{MONEY WITH WINGS} you got money! you have received `{amount:.2f}bc` from {ctx.author.mention}.'
+                f'\N{MONEY WITH WINGS} you got money! you have '
+                f'received `{amount:.2f}bc` from {ctx.author.mention}.'
             )
         except discord.HTTPException:
             pass
