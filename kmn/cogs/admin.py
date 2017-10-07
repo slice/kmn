@@ -34,7 +34,8 @@ class Admin(Cog):
     @command()
     async def about(self, ctx):
         """about me!"""
-        embed = Embed(title=str(self.bot.user), color=Color.blurple(), description="i'm a cool bot")
+        description = "i'm a cool bot" + (' (testing)' if ctx.bot.testing else '')
+        embed = Embed(title=str(self.bot.user), color=Color.blurple(), description=description)
         admins = format_list(self.bot.config.get('admins', []), format='<@{item}>')
         embed.add_field(name='admins', value=admins)
         await ctx.send(embed=embed)

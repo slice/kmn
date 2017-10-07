@@ -44,6 +44,10 @@ class Bot(DiscordBot):
         for cog in self.config.get('cogs', []):
             self.load_extension('kmn.cogs.{}'.format(cog))
 
+    @property
+    def testing(self):
+        return self.config.get('environment', 'production') == 'testing'
+
     async def save_config(self):
         with open('config.json', 'w') as fp:
             json.dump(self.config, fp, indent=2)
@@ -57,6 +61,7 @@ class Bot(DiscordBot):
         if message.author.bot:
             return
 
+        # ignore blocked users
         if self.blocked.get(str(message.author.id)):
             return
 
@@ -66,15 +71,14 @@ class Bot(DiscordBot):
 
     async def on_command_error(self, ctx, error):
         if isinstance(error, errors.UserInputError):
-            await ctx.send(f'input error: {str(error).lower()}')
+            await ctx.send(f'input error: {error}')
         elif isinstance(error, errors.CheckFailure):
             await ctx.send("you can't do that.")
         elif isinstance(error, errors.NoPrivateMessage):
             await ctx.send("you can't do that in a direct message.")
         elif isinstance(error, errors.CommandInvokeError):
             if isinstance(error.original, CommandFailure):
-                message = str(error.original)\
-                    .format(prefix=ctx.prefix)
+                message = str(error.original).format(prefix=ctx.prefix)
                 return await ctx.send(message)
 
             formatted_traceback = ''.join(traceback.format_exception(type(error), error, error.__traceback__, limit=7))
