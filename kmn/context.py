@@ -8,6 +8,8 @@ import discord
 from discord import Color, Embed
 from discord.ext.commands import Context as DiscordContext
 
+from kmn.guild_config import GuildConfig
+
 
 class _ContextDBAcquire:
     __slots__ = ('ctx', 'timeout')
@@ -32,14 +34,18 @@ class Context(DiscordContext):
         super().__init__(**kwargs)
 
         # mirrored from bot
-        self.pool = self.bot.pool
+        self.postgres = self.bot.postgres
+        self.redis = self.bot.redis
+
+        # guild-specific configuration
+        self.config = GuildConfig(self.guild, redis=self.redis)
 
         # database connection
         self.db = None
 
     async def _acquire(self, timeout):
         if self.db is None:
-            self.db = await self.pool.acquire(timeout=timeout)
+            self.db = await self.postgres.acquire(timeout=timeout)
         return self.db
 
     def acquire(self, *, timeout=None):
@@ -47,7 +53,7 @@ class Context(DiscordContext):
 
     async def release(self):
         if self.db is not None:
-            await self.bot.pool.release(self.db)
+            await self.bot.postgres.release(self.db)
             self.db = None
 
     async def confirm(self, **kwargs):

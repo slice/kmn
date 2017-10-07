@@ -2,6 +2,7 @@ import json
 import logging
 import traceback
 
+import aioredis
 import asyncpg
 from discord.ext.commands import Bot as DiscordBot, when_mentioned_or, errors
 
@@ -34,10 +35,18 @@ class Bot(DiscordBot):
         # blocked users
         self.blocked = JSONStorage('_blocked.json', loop=self.loop)
 
-        # create a pool
+        # postgres pool
         log.info('connecting to postgres')
         _pool_future = asyncpg.create_pool(**config['postgres'])
-        self.pool = self.loop.run_until_complete(_pool_future)
+        self.postgres = self.loop.run_until_complete(_pool_future)
+
+        # redis pool
+        log.info('connecting to redis')
+        _redis_future = aioredis.create_pool(
+            (config['redis']['host'], config['redis']['port']),
+            db=config['redis'].get('db', 0)
+        )
+        self.redis = self.loop.run_until_complete(_redis_future)
 
         # load all cogs
         log.info('initial cog load')
