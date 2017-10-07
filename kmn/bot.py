@@ -2,6 +2,7 @@ import json
 import logging
 import traceback
 
+import asyncpg
 from discord.ext.commands import Bot as DiscordBot, when_mentioned_or, errors
 
 from kmn.context import Context
@@ -30,9 +31,16 @@ class Bot(DiscordBot):
         # store config
         self.config = config
 
+        # blocked users
         self.blocked = JSONStorage('_blocked.json', loop=self.loop)
 
+        # create a pool
+        log.info('connecting to postgres')
+        _pool_future = asyncpg.create_pool(**config['postgres'])
+        self.pool = self.loop.run_until_complete(_pool_future)
+
         # load all cogs
+        log.info('initial cog load')
         for cog in self.config.get('cogs', []):
             self.load_extension('kmn.cogs.{}'.format(cog))
 

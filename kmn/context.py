@@ -1,11 +1,54 @@
+"""
+Custom command context for kmn.
+
+Most of the database-management code was stolen from Danny (@Rapptz on GitHub). Thanks!
+"""
+
 import discord
 from discord import Color, Embed
 from discord.ext.commands import Context as DiscordContext
 
 
+class _ContextDBAcquire:
+    __slots__ = ('ctx', 'timeout')
+
+    def __init__(self, ctx, timeout):
+        self.ctx = ctx
+        self.timeout = timeout
+
+    def __await__(self):
+        return self.ctx._acquire(self.timeout).__await__()
+
+    async def __aenter__(self):
+        await self.ctx._acquire(self.timeout)
+        return self.ctx.db
+
+    async def __aexit__(self, *args):
+        await self.ctx.release()
+
+
 class Context(DiscordContext):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # mirrored from bot
+        self.pool = self.bot.pool
+
+        # database connection
+        self.db = None
+
+    async def _acquire(self, timeout):
+        if self.db is None:
+            self.db = await self.pool.acquire(timeout=timeout)
+        return self.db
+
+    def acquire(self, *, timeout=None):
+        return _ContextDBAcquire(self, timeout=timeout)
+
+    async def release(self):
+        if self.db is not None:
+            await self.bot.pool.release(self.db)
+            self.db = None
 
     async def confirm(self, **kwargs):
         embed = Embed(**kwargs, color=Color.red())
@@ -29,8 +72,8 @@ class Context(DiscordContext):
                 return False
 
         # only accept reactions from the same person and channel
-        def _check(reaction, user):
-            return user == self.author and reaction.message.channel == self.channel
+        def _check(added_reaction, user):
+            return user == self.author and added_reaction.message.channel == self.channel
 
         # wait for reaction
         while True:
