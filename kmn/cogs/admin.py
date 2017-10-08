@@ -3,14 +3,16 @@ import logging
 from io import BytesIO
 
 import asyncpg
+import datetime
 import discord
-from discord import File, User
-from discord.ext.commands import command
+from discord import File, User, Embed, Color
+from discord.ext.commands import command, group
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
-from kmn.formatting import codeblock
+from kmn.formatting import codeblock, describe as D, KmnEmbed
 from kmn.utils import Timer, Table, plural
+from kmn.bot import BLOCKED_KEY
 
 log = logging.getLogger(__name__)
 
@@ -46,22 +48,64 @@ class Admin(Cog):
         await self.bot.save_config()
         await ctx.send(f'\N{OK HAND SIGN} made {who} a global admin.')
 
-    @command(hidden=True)
+    async def flush_blocked_status(self, user: User):
+        with await self.bot.redis as conn:
+            log.info('flushing blocked status for %d', user.id)
+            await conn.delete(BLOCKED_KEY.format(user))
+
+    @group(hidden=True, invoke_without_command=True)
     @is_bot_admin()
-    async def block(self, ctx, who: discord.User):
-        """blocks someone"""
-        await ctx.bot.blocked.put(str(who.id), True)
-        await ctx.send(f'\N{OK HAND SIGN} blocked {who}.')
+    async def block(self, ctx, who: User, *, reason=None):
+        """blocks someone from me"""
+        query = """
+            INSERT INTO blocked_users (user_id, block_reason, blocked_by, blocked_at)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id) DO UPDATE SET block_reason = $2
+        """
+        await ctx.bot.postgres.execute(
+            query,
+            who.id, reason, ctx.author.id, datetime.datetime.utcnow()
+        )
+
+        await self.flush_blocked_status(who)
+        await ctx.send(f'\N{OK HAND SIGN} blocked {D(who)}.')
+
+    @block.command(name='info')
+    @is_bot_admin()
+    async def block_info(self, ctx, who: User):
+        """views block info"""
+        query = """
+            SELECT * FROM blocked_users
+            WHERE user_id = $1
+        """
+        row = await ctx.bot.postgres.fetchrow(query, who.id)
+
+        if not row:
+            return await ctx.send("that user isn't blocked.")
+
+        blocker = ctx.bot.get_user(row['blocked_by'])
+        blocker = D(blocker) if blocker else '`<unknown user>`'
+
+        em = KmnEmbed(title=D(who), color=Color.red())
+        em.add_fields(
+            ('admin', blocker),
+            ('reason', row['block_reason'] or '`<no reason>`'),
+            inline=False
+        )
+        await ctx.send(embed=em)
 
     @command(hidden=True)
     @is_bot_admin()
     async def unblock(self, ctx, who: discord.User):
-        """unblocks someone"""
-        try:
-            await ctx.bot.blocked.delete(str(who.id))
-        except KeyError:
-            pass
-        await ctx.send(f'\N{OK HAND SIGN} unblocked {who}.')
+        """unblocks someone from me"""
+        query = """
+            DELETE FROM blocked_users
+            WHERE user_id = $1
+        """
+        await ctx.bot.postgres.execute(query, who.id)
+
+        await self.flush_blocked_status(who)
+        await ctx.send(f'\N{OK HAND SIGN} unblocked {D(who)}.')
 
     @command(hidden=True)
     @is_bot_admin()

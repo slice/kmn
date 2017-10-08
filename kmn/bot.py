@@ -14,6 +14,7 @@ from kmn.storage import JSONStorage
 
 log = logging.getLogger(__name__)
 DESCRIPTION = """a super neat bot by slice#4274"""
+BLOCKED_KEY = 'kmn:core:cache:blocked:{0.id}'
 
 
 class Bot(DiscordBot):
@@ -72,13 +73,39 @@ class Bot(DiscordBot):
     async def on_ready(self):
         log.info('logged in as %s (%d)', self.user, self.user.id)
 
+    async def is_blocked(self, user):
+        # grab cached value
+        with await self.redis as conn:
+            value = await conn.get(BLOCKED_KEY.format(user))
+
+        # value was cached
+        if value is not None:
+            return value.decode() == 'yes'
+
+        # grab their blocked status from the database
+        query = """
+            SELECT * FROM blocked_users
+            WHERE user_id = $1
+        """
+        record = await self.postgres.fetchrow(query, user.id)
+
+        # cache the blocked value in redis
+        with await self.redis as conn:
+            await conn.set(
+                BLOCKED_KEY.format(user),
+                'no' if record is None else 'yes',
+                expire=600  # 10 minutes
+            )
+
+        return record is not None
+
     async def on_message(self, message):
         # ignore bots
         if message.author.bot:
             return
 
         # ignore blocked users
-        if self.blocked.get(str(message.author.id)):
+        if await self.is_blocked(message.author):
             return
 
         # invoke context
