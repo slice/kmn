@@ -1,3 +1,4 @@
+import arrow
 from discord import Embed
 
 
@@ -7,6 +8,10 @@ def codeblock(code, *, lang=''):
 
 def describe(thing):
     return f'{thing} (`{thing.id}`)'
+
+
+def humanize_time(dt):
+    return arrow.get(dt).humanize()
 
 
 class KmnEmbed(Embed):

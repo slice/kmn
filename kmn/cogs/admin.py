@@ -10,7 +10,7 @@ from discord.ext.commands import command, group
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
-from kmn.formatting import codeblock, describe as D, KmnEmbed
+from kmn.formatting import codeblock, describe as D, KmnEmbed, humanize_time
 from kmn.utils import Timer, Table, plural
 from kmn.bot import BLOCKED_KEY
 
@@ -86,10 +86,12 @@ class Admin(Cog):
         blocker = ctx.bot.get_user(row['blocked_by'])
         blocker = D(blocker) if blocker else '`<unknown user>`'
 
-        em = KmnEmbed(title=D(who), color=Color.red())
+        em = KmnEmbed(color=Color.red())
+        em.set_author(name=who, icon_url=who.avatar_url)
         em.add_fields(
             ('admin', blocker),
             ('reason', row['block_reason'] or '`<no reason>`'),
+            ('when', humanize_time(row['blocked_at'])),
             inline=False
         )
         await ctx.send(embed=em)
