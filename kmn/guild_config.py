@@ -8,6 +8,11 @@ class GuildConfig:
         self.guild = guild
         self.redis = redis
 
+    @classmethod
+    def for_guild(cls, guild, *, redis):
+        # a bit pointless but prettier
+        return GuildConfig(guild, redis=redis)
+
     async def set(self, key, value):
         with await self.redis as conn:
             await conn.set(GUILD_KEY.format(self.guild, key), value)
