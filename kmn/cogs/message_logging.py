@@ -18,9 +18,9 @@ class MessageLogging(Cog):
 
         insertion = """
             INSERT INTO messages
-            (id, content, created_at, author_id, author_tag, channel_id, channel_name, guild_id, guild_name)
+            (id, content, created_at, author_id, author_tag, author_bot, channel_id, channel_name, guild_id, guild_name)
             VALUES
-            ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
         """
 
         async with self.bot.postgres.acquire() as conn:
@@ -31,7 +31,7 @@ class MessageLogging(Cog):
                 msg.id, msg.content, msg.created_at,
 
                 # author
-                msg.author.id, str(msg.author),
+                msg.author.id, str(msg.author), msg.author.bot,
 
                 # channel
                 msg.channel.id, msg.channel.name,

@@ -6,6 +6,7 @@ CREATE TABLE messages (
 
     author_id BIGINT,
     author_tag VARCHAR(1024),
+    author_bot BOOLEAN,
 
     channel_id BIGINT,
     channel_name VARCHAR(1024),
