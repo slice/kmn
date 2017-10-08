@@ -1,16 +1,17 @@
 import asyncio
 import logging
-import shlex
+from io import BytesIO
 from time import monotonic
 
+import asyncpg
 import discord
-from discord import Embed, Color
+from discord import Embed, Color, File
 from discord.ext.commands import command, cooldown, BucketType
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
 from kmn.formatting import format_list, codeblock
-from kmn.utils import timed
+from kmn.utils import Timer, Table, plural
 
 log = logging.getLogger(__name__)
 
@@ -81,13 +82,59 @@ class Admin(Cog):
             pass
         await ctx.send(f'\N{OK HAND SIGN} unblocked {who}.')
 
+    @command(hidden=True)
+    @is_bot_admin()
+    async def sql(self, ctx, *, sql):
+        """execute some sql"""
+        # from mousey: https://git.io/vdzge
+
+        # this is probably not the ideal solution...
+        if 'select' in sql.lower():
+            coro = ctx.bot.postgres.fetch
+        else:
+            coro = ctx.bot.postgres.execute
+
+        try:
+            with Timer() as t:
+                result = await coro(sql)
+        except asyncpg.PostgresError as e:
+            return await ctx.send(f'\N{CACTUS} Failed to execute! {type(e).__name__}: {e}')
+
+        # execute returns the status as a string
+        if isinstance(result, str):
+            return await ctx.send(f'```\n{result}```\n*took `{t.duration:.2f}ms`*')
+
+        if not result:
+            return await ctx.send(f'no results, took `{t.duration:.2f}ms`.')
+
+        # render output of statement
+        columns = list(result[0].keys())
+        table = Table(*columns)
+
+        for row in result:
+            values = [str(x) for x in row]
+            table.add_row(*values)
+
+        # properly emulate the psql console
+        rows = plural(row=len(result))
+
+        content = f'```\n{table.rendered}```\n*{rows}, took {t.duration:.2f}ms*'
+        if len(content) > 2000:
+            raw_content = f'{table.rendered}\n{"=" * 140}\n{rows}, took {t.duration:.2f}ms to generate.'
+            with BytesIO() as bio:
+                bio.write(raw_content.encode())
+                bio.seek(0)
+                await ctx.send('content was too long.', file=File(bio, 'result.txt'))
+        else:
+            await ctx.send(content)
+
     @command()
     @is_bot_admin()
     async def reload(self, ctx):
         """reloads all extensions"""
         progress = await ctx.send('reloading...')
 
-        with timed() as t:
+        with Timer() as t:
             for name, ext in ctx.bot.extensions.copy().items():
                 try:
                     ctx.bot.unload_extension(name)
@@ -95,7 +142,7 @@ class Admin(Cog):
                 except Exception:
                     log.exception('Failed to load %s:', name)
                     return await progress.edit(content=f'failed to load `{name}`.')
-        await progress.edit(content=f'reloaded in `{round(t.interval, 2)}ms`.')
+        await progress.edit(content=f'reloaded in `{round(t.duration, 2)}ms`.')
 
 
 def setup(bot):
