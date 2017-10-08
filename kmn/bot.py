@@ -1,6 +1,7 @@
 import json
 import logging
 import traceback
+from pathlib import Path
 
 import aioredis
 import asyncpg
@@ -50,8 +51,14 @@ class Bot(DiscordBot):
 
         # load all cogs
         log.info('initial cog load')
-        for cog in self.config.get('cogs', []):
-            self.load_extension('kmn.cogs.{}'.format(cog))
+        self.load_all_cogs()
+
+    def load_all_cogs(self):
+        cog_path = Path(__file__).parent / 'cogs'
+        cogs = {cog.stem for cog in cog_path.iterdir() if cog.stem not in {'__init__', '__pycache__'}}
+        for cog in cogs:
+            log.info('initial load: kmn.cogs.%s', cog)
+            self.load_extension(f'kmn.cogs.{cog}')
 
     @property
     def testing(self):
