@@ -1,16 +1,15 @@
 import asyncio
 import logging
 from io import BytesIO
-from time import monotonic
 
 import asyncpg
 import discord
-from discord import Embed, Color, File
-from discord.ext.commands import command, cooldown, BucketType
+from discord import File, User
+from discord.ext.commands import command
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
-from kmn.formatting import format_list, codeblock
+from kmn.formatting import codeblock
 from kmn.utils import Timer, Table, plural
 
 log = logging.getLogger(__name__)
@@ -32,38 +31,20 @@ class Admin(Cog):
         await ctx.send('ok, bye.')
         await ctx.bot.logout()
 
-    @command()
-    async def about(self, ctx):
-        """about me!"""
-        description = "i'm a cool bot" + (' (testing)' if ctx.bot.testing else '')
-        embed = Embed(title=str(self.bot.user), color=Color.blurple(), description=description)
-        admins = format_list(self.bot.config.get('admins', []), format='<@{item}>')
-        embed.add_field(name='admins', value=admins)
-        await ctx.send(embed=embed)
-
     @command(hidden=True)
     @is_bot_admin()
-    async def shell(self, ctx, *, command):
+    async def shell(self, ctx, *, cmd):
         """run something in bash"""
-        result = await shell(command)
+        result = await shell(cmd)
         await ctx.send(codeblock(result))
 
     @command(hidden=True)
     @is_bot_admin()
-    async def promote(self, ctx, *, who: discord.User):
+    async def promote(self, ctx, *, who: User):
         """make someone global admin (danger!!)"""
         self.bot.config['admins'].append(who.id)
         await self.bot.save_config()
         await ctx.send(f'\N{OK HAND SIGN} made {who} a global admin.')
-
-    @command(hidden=True)
-    @cooldown(rate=1, per=2, type=BucketType.user)
-    async def ping(self, ctx):
-        """pong"""
-        before = monotonic()
-        message = await ctx.send('po—')
-        after = monotonic()
-        await message.edit(content=f'pong! `{round((after - before) * 1000, 2)}ms`')
 
     @command(hidden=True)
     @is_bot_admin()
@@ -142,6 +123,7 @@ class Admin(Cog):
                 except Exception:
                     log.exception('Failed to load %s:', name)
                     return await progress.edit(content=f'failed to load `{name}`.')
+
         await progress.edit(content=f'reloaded in `{round(t.duration, 2)}ms`.')
 
 
