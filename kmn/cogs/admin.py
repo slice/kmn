@@ -5,7 +5,7 @@ from io import BytesIO
 import asyncpg
 import datetime
 import discord
-from discord import File, User, Embed, Color
+from discord import File, User, Color
 from discord.ext.commands import command, group
 
 from kmn.checks import is_bot_admin
