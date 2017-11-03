@@ -1,16 +1,30 @@
+import random
+
 import discord
-from discord.ext.commands import command
+from discord import User
+from discord.ext.commands import command, clean_content
 
 from kmn.cog import Cog
+from kmn.errors import CommandFailure
 
-RIGGED = [
+RIGGED = {
     (162819866682851329, 138428648901312512)
-]
+}
 
 
 class Fun(Cog):
     @command()
-    async def ship(self, ctx, a: discord.User, b: discord.User):
+    async def pick(self, ctx, *things: clean_content):
+        """pick some things"""
+        unique_things = set(things)
+
+        if len(unique_things) < 2:
+            raise CommandFailure('you need more than 1 unique thing.')
+
+        await ctx.send(random.choice(things))
+
+    @command()
+    async def ship(self, ctx, a: User, b: User):
         """ships two peeps to see their score"""
 
         a_score, b_score = int(str(a.id)[4]), int(str(b.id)[4])

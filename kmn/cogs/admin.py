@@ -62,7 +62,7 @@ class Admin(Cog):
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (user_id) DO UPDATE SET block_reason = $2
         """
-        await ctx.bot.postgres.execute(
+        await self.pg.execute(
             query,
             who.id, reason, ctx.author.id, datetime.datetime.utcnow()
         )
@@ -78,7 +78,7 @@ class Admin(Cog):
             SELECT * FROM blocked_users
             WHERE user_id = $1
         """
-        row = await ctx.bot.postgres.fetchrow(query, who.id)
+        row = await self.pg.fetchrow(query, who.id)
 
         if not row:
             return await ctx.send("that user isn't blocked.")
@@ -104,7 +104,7 @@ class Admin(Cog):
             DELETE FROM blocked_users
             WHERE user_id = $1
         """
-        await ctx.bot.postgres.execute(query, who.id)
+        await self.pg.execute(query, who.id)
 
         await self.flush_blocked_status(who)
         await ctx.send(f'\N{OK HAND SIGN} unblocked {D(who)}.')
@@ -116,10 +116,7 @@ class Admin(Cog):
         # from mousey: https://git.io/vdzge
 
         # this is probably not the ideal solution...
-        if 'select' in sql.lower():
-            coro = ctx.bot.postgres.fetch
-        else:
-            coro = ctx.bot.postgres.execute
+        coro = self.pg.fetch if 'select' in sql.lower() else self.pg.execute
 
         try:
             with Timer() as t:

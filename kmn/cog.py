@@ -11,6 +11,16 @@ class Cog:
         self._original_unload = getattr(self, mangle_key, None)
         setattr(self, mangle_key, self.__unload)
 
+    @property
+    def pg(self):
+        """Shortcut to ``Bot.postgres``."""
+        return self.bot.postgres
+
+    @property
+    def redis(self):
+        """Shortcut to ``Bot.redis``."""
+        return self.bot.redis
+
     def __unload(self):
         self.session.close()
         if self._original_unload:

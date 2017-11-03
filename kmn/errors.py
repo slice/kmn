@@ -1,2 +1,2 @@
 class CommandFailure(Exception):
-    pass
+    """An exception to be thrown in commands denoting a command failure."""
