@@ -6,7 +6,7 @@ from kmn.cog import Cog
 
 
 class Health(Cog):
-    @command(hidden=True)
+    @command(hidden=True, aliases=['p'])
     @cooldown(rate=1, per=2, type=BucketType.user)
     async def ping(self, ctx):
         """pong"""

@@ -33,7 +33,7 @@ class Admin(Cog):
         await ctx.send('ok, bye.')
         await ctx.bot.logout()
 
-    @command(hidden=True)
+    @command(hidden=True, aliases=['sh'])
     @is_bot_admin()
     async def shell(self, ctx, *, cmd):
         """run something in bash"""
