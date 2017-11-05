@@ -7,6 +7,22 @@ def plural(**word):
     return f'{value} {word}' if value == 1 else f'{value} {word}s'
 
 
+class Timer:
+    def __init__(self):
+        self.start: float = None
+        self.end: float = None
+
+    def __enter__(self):
+        self.start = time.monotonic()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end = time.monotonic()
+
+    def __str__(self):
+        return f'{(self.end - self.start) * 1000:.2f}ms'
+
+
 class Table:
     """
     A class used to format strings into a table.
@@ -71,20 +87,3 @@ class Table:
     @property
     def rendered(self):
         return self._render()
-
-
-class Timer:
-    def __init__(self):
-        self.before: int = None
-        self.after: int = None
-
-    def __enter__(self):
-        self.before = time.monotonic()
-        return self
-
-    def __exit__(self, *args):
-        self.after = time.monotonic()
-
-    @property
-    def duration(self):
-        return (self.after - self.before) * 1000

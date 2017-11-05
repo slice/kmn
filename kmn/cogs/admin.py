@@ -167,7 +167,7 @@ class Admin(Cog):
                     log.exception('Failed to load %s:', name)
                     return await progress.edit(content=f'failed to load `{name}`.')
 
-        await progress.edit(content=f'reloaded in `{round(t.duration, 2)}ms`.')
+        await progress.edit(content=f'reloaded in `{t}`.')
 
 
 def setup(bot):
