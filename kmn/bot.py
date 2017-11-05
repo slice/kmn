@@ -18,7 +18,7 @@ BLOCKED_KEY = 'kmn:core:cache:blocked:{0.id}'
 
 
 class Bot(DiscordBot):
-    def __init__(self, *, config):
+    def __init__(self, *, config, postgres, redis):
         prefixes = config.get('prefixes', ['k~', 'k!'])
 
         super().__init__(
@@ -38,17 +38,8 @@ class Bot(DiscordBot):
         self.blocked = JSONStorage('_blocked.json', loop=self.loop)
 
         # postgres pool
-        log.info('connecting to postgres')
-        _pool_future = asyncpg.create_pool(**config['postgres'])
-        self.postgres = self.loop.run_until_complete(_pool_future)
-
-        # redis pool
-        log.info('connecting to redis')
-        _redis_future = aioredis.create_pool(
-            (config['redis']['host'], config['redis']['port']),
-            db=config['redis'].get('db', 0)
-        )
-        self.redis = self.loop.run_until_complete(_redis_future)
+        self.postgres = postgres
+        self.redis = redis
 
         # load all cogs
         log.info('initial cog load')

@@ -1,8 +1,8 @@
 import random
 
 import discord
-from discord import User
-from discord.ext.commands import command, clean_content
+from discord import User, Member
+from discord.ext.commands import command, clean_content, cooldown, BucketType
 
 from kmn.cog import Cog
 from kmn.errors import CommandFailure

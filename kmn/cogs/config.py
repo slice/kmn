@@ -48,7 +48,7 @@ class Config(Cog):
         """sets a configuration key"""
 
         if key not in self.SCHEMA:
-            return await ctx.send('That key is not valid.')
+            return await ctx.send('that key is invalid.')
 
         schema_field = self.SCHEMA[key]
 
