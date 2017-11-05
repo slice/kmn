@@ -142,9 +142,9 @@ class Admin(Cog):
         # properly emulate the psql console
         rows = plural(row=len(result))
 
-        content = f'```\n{table.rendered}```\n*{rows}, took {t.duration:.2f}ms*'
+        content = f'```\n{table.rendered}```\n*{rows}, took {t}*'
         if len(content) > 2000:
-            raw_content = f'{table.rendered}\n{"=" * 140}\n{rows}, took {t.duration:.2f}ms to generate.'
+            raw_content = f'{table.rendered}\n{"=" * 140}\n{rows}, took {t} to generate.'
             with BytesIO() as bio:
                 bio.write(raw_content.encode())
                 bio.seek(0)
