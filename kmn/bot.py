@@ -67,8 +67,9 @@ class Bot(DiscordBot):
             return await conn.smembers(key, encoding='utf-8')
 
     def load_all_cogs(self):
+        exclude = {'__init__', '__pycache__'} | set(self.config.get('exclude_cogs', []))
         cog_path = Path(__file__).parent / 'cogs'
-        cogs = {cog.stem for cog in cog_path.iterdir() if cog.stem not in {'__init__', '__pycache__'}}
+        cogs = {cog.stem for cog in cog_path.iterdir() if cog.stem not in exclude}
         for cog in cogs:
             log.info('initial load: kmn.cogs.%s', cog)
             self.load_extension(f'kmn.cogs.{cog}')
