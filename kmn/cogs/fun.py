@@ -2,19 +2,50 @@ import random
 import re
 
 import discord
-from discord import User, Member
-from discord.ext.commands import command, clean_content, cooldown, BucketType
+from discord import User, Member, HTTPException
+from discord.ext.commands import command, clean_content, cooldown, BucketType, guild_only, group
 
 from kmn.cog import Cog
 from kmn.context import Context
 from kmn.errors import CommandFailure
+from kmn.utils import plural
 
 RIGGED = {
     (162819866682851329, 138428648901312512)
 }
+STAB_KEY = 'kmn:fun:stabs:{0.id}'
+STAB_LOCK_KEY = 'kmn:fun:stab:lock:{0.id}'
+STAB_DURATION = 60 * 60  # 1 hour
 
 
 class Fun(Cog):
+    @group(invoke_without_command=True)
+    @cooldown(1, 2, BucketType.user)
+    @guild_only()
+    async def stab(self, ctx: Context, *, target: User):
+        """stab someone"""
+        with await self.redis as conn:
+            if await conn.exists(STAB_LOCK_KEY.format(target)):
+                return await ctx.send(f'too soon, try stabbing {target.name} later!')
+
+            await conn.set(STAB_LOCK_KEY.format(target), 'haha yes', expire=STAB_DURATION)
+            await conn.incr(STAB_KEY.format(target))
+
+            try:
+                await target.send(f'\N{HOCHO} you got stabbed by {ctx.author.name}. better luck next time.')
+            except HTTPException:
+                pass
+
+        await ctx.ok('\N{HOCHO}')
+
+    @stab.command(name='stats')
+    @guild_only()
+    async def stab_stats(self, ctx: Context, *, target: User):
+        """show how many times someone got stabbed"""
+        with await self.redis as conn:
+            times = int(await conn.get(STAB_KEY.format(target), encoding='utf-8') or '0')
+            await ctx.send(f'{target.name} has been stabbed {plural(time=times)}.')
+
     @command()
     async def pick(self, ctx: Context, *things: clean_content):
         """pick some things"""
