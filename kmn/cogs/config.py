@@ -1,8 +1,11 @@
 from collections import namedtuple
 
+from discord import Color, Embed
 from discord.ext.commands import group, guild_only, clean_content, has_permissions
 
+from kmn.bot import PREFIXES_KEY
 from kmn.cog import Cog
+from kmn.context import Context
 
 
 class Field(namedtuple('Field', 'type description')):
@@ -33,6 +36,36 @@ class Config(Cog):
     @guild_only()
     async def cfg(self, ctx):
         """manages this server's configuration"""
+
+    @cfg.group()
+    @guild_only()
+    async def prefix(self, ctx):
+        """manages prefixes"""
+
+    @prefix.command(name='add')
+    async def prefix_add(self, ctx: Context, *, prefix: clean_content):
+        """add a prefix"""
+        with await self.redis as conn:
+            await conn.sadd(PREFIXES_KEY.format(ctx.guild), prefix)
+        await ctx.ok()
+
+    @prefix.command(name='remove')
+    async def prefix_remove(self, ctx: Context, *, prefix: clean_content):
+        """remove a prefix"""
+        if len(await ctx.bot.get_prefixes_for(ctx.guild)) == 1:
+            return await ctx.send("you can't remove the only prefix, lol.")
+
+        with await self.redis as conn:
+            await conn.srem(PREFIXES_KEY.format(ctx.guild), prefix)
+        await ctx.ok()
+
+    @prefix.command(name='list')
+    async def prefix_list(self, ctx: Context):
+        """list prefixes"""
+        embed = Embed(color=Color.blurple(), title='prefixes')
+        embed.set_footer(text='mentioning me will always work')
+        embed.description = '\n'.join(['\N{BULLET} ' + prefix for prefix in await ctx.bot.get_prefixes_for(ctx.guild)])
+        await ctx.send(embed=embed)
 
     @cfg.command(name='schema')
     async def cfg_schema(self, ctx):

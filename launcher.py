@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import json
+import sys
 
 import aioredis
 import asyncpg
@@ -12,7 +13,7 @@ root_logger = logging.getLogger()
 root_logger.setLevel(logging.INFO)
 kmn_logger = logging.getLogger('kmn')
 kmn_logger.setLevel(logging.DEBUG)
-stream = logging.StreamHandler()
+stream = logging.StreamHandler(sys.stdout)
 stream.setFormatter(logging.Formatter('[{asctime}] [{levelname: <7}] {name}: {message}', '%Y-%m-%d %H:%M:%S', style='{'))
 root_logger.addHandler(stream)
 

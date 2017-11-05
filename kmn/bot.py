@@ -5,6 +5,7 @@ from pathlib import Path
 
 import aioredis
 import asyncpg
+from discord import Message, Guild
 from discord.ext.commands import Bot as DiscordBot, when_mentioned_or, errors
 
 from kmn.context import Context
@@ -15,14 +16,26 @@ from kmn.storage import JSONStorage
 log = logging.getLogger(__name__)
 DESCRIPTION = """a super neat bot by slice#4274"""
 BLOCKED_KEY = 'kmn:core:cache:blocked:{0.id}'
+PREFIXES_KEY = 'kmn:core:prefixes:{0.id}'
+
+
+async def prefix_handler(bot: 'Bot', msg: Message):
+    await bot.wait_until_ready()
+
+    default_prefixes = bot.config.get('prefixes', ['k?'])
+    mention_prefixes = [f'<@{bot.user.id}> ', f'<@!{bot.user.id}> ']
+
+    if not msg.guild:
+        return default_prefixes + mention_prefixes
+
+    prefixes = await bot.get_prefixes_for(msg.guild)
+    return mention_prefixes + prefixes
 
 
 class Bot(DiscordBot):
     def __init__(self, *, config, postgres, redis):
-        prefixes = config.get('prefixes', ['k~', 'k!'])
-
         super().__init__(
-            command_prefix=when_mentioned_or(*prefixes),
+            command_prefix=prefix_handler,
             pm_help=None,
             formatter=Formatter(),
             description=DESCRIPTION
@@ -44,6 +57,14 @@ class Bot(DiscordBot):
         # load all cogs
         log.info('initial cog load')
         self.load_all_cogs()
+
+    async def get_prefixes_for(self, guild: Guild):
+        key = PREFIXES_KEY.format(guild)
+
+        with await self.redis as conn:
+            if not await conn.exists(key):
+                await conn.sadd(key, 'k!', 'k?')
+            return await conn.smembers(key, encoding='utf-8')
 
     def load_all_cogs(self):
         cog_path = Path(__file__).parent / 'cogs'
