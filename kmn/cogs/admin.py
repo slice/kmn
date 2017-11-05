@@ -152,7 +152,7 @@ class Admin(Cog):
         else:
             await ctx.send(content)
 
-    @command()
+    @command(aliases=['r'])
     @is_bot_admin()
     async def reload(self, ctx):
         """reloads all extensions"""
