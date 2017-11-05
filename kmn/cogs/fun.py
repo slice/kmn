@@ -1,10 +1,12 @@
 import random
+import re
 
 import discord
 from discord import User, Member
 from discord.ext.commands import command, clean_content, cooldown, BucketType
 
 from kmn.cog import Cog
+from kmn.context import Context
 from kmn.errors import CommandFailure
 
 RIGGED = {
@@ -14,7 +16,7 @@ RIGGED = {
 
 class Fun(Cog):
     @command()
-    async def pick(self, ctx, *things: clean_content):
+    async def pick(self, ctx: Context, *things: clean_content):
         """pick some things"""
         unique_things = set(things)
 
@@ -24,7 +26,47 @@ class Fun(Cog):
         await ctx.send(random.choice(things))
 
     @command()
-    async def ship(self, ctx, a: User, b: User):
+    async def owo(self, ctx: Context, *, text: clean_content):
+        """hewwo!!"""
+
+        faces = ["(・`ω´・)", ";;w;;", "owo", "UwU", ">w<", "^w^"]
+
+        replacement_table = {
+            r'[rl]': 'w',           r'[RL]': 'W',
+            r'n([aeiou])': 'ny\\1', r'N([aeiou])': 'Ny\\1',
+            r'ove': 'uv'
+        }
+
+        for regex, replace_with in replacement_table.items():
+            text = re.sub(regex, replace_with, text)
+
+        await ctx.send(text)
+
+    @command()
+    async def drilify(self, ctx: Context, *, text: clean_content):
+        """this Is so coole...."""
+        words = text.split(' ')
+        after = ''
+
+        for index, word in enumerate(words):
+            # randomly capitalize words
+            if index % 2 == 0 or random.random() > 0.9:
+                words[index] = word.title()
+
+            if (index % 3 == 0 or random.random() > 0.8) and \
+                    not word.endswith('e') and \
+                    word[-1].lower() not in list('aeiou.,!:'):
+                words[index] = word + 'e'
+
+        if random.random() > 0.7:
+            after = '.' * random.randint(1, 6)
+        else:
+            after = ',' if random.random() < 0.8 else ',' * random.randint(1, 2)
+
+        await ctx.send(' '.join(words) + after)
+
+    @command()
+    async def ship(self, ctx: Context, a: User, b: User):
         """ships two peeps to see their score"""
 
         a_score, b_score = int(str(a.id)[4]), int(str(b.id)[4])
