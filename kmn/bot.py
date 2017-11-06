@@ -1,15 +1,11 @@
 import json
 import logging
-import traceback
 from pathlib import Path
 
-import aioredis
-import asyncpg
 from discord import Message, Guild
-from discord.ext.commands import Bot as DiscordBot, when_mentioned_or, errors
+from discord.ext.commands import Bot as DiscordBot
 
 from kmn.context import Context
-from kmn.errors import CommandFailure
 from kmn.formatter import Formatter
 from kmn.storage import JSONStorage
 
@@ -128,20 +124,3 @@ class Bot(DiscordBot):
         ctx = await self.get_context(message, cls=Context)
         await self.invoke(ctx)
 
-    async def on_command_error(self, ctx, error):
-        if isinstance(error, errors.UserInputError):
-            await ctx.send(f'input error: {error}')
-        elif isinstance(error, errors.BotMissingPermissions) or isinstance(error, errors.MissingPermissions):
-            await ctx.send("uhh... " + str(error).lower())
-        elif isinstance(error, errors.CheckFailure):
-            await ctx.send("you can't do that.")
-        elif isinstance(error, errors.NoPrivateMessage):
-            await ctx.send("you can't do that in a direct message.")
-        elif isinstance(error, errors.CommandInvokeError):
-            if isinstance(error.original, CommandFailure):
-                message = str(error.original).format(prefix=ctx.prefix)
-                return await ctx.send(message)
-
-            formatted_traceback = ''.join(traceback.format_exception(type(error), error, error.__traceback__, limit=7))
-            log.fatal('Command invoke error: %s', formatted_traceback)
-            await ctx.send('a fatal error has occurred.')
