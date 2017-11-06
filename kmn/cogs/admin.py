@@ -10,6 +10,7 @@ from discord.ext.commands import command, group
 
 from kmn.checks import is_bot_admin
 from kmn.cog import Cog
+from kmn.context import Context
 from kmn.formatting import codeblock, describe as D, KmnEmbed, humanize_time
 from kmn.utils import Timer, Table, plural
 from kmn.bot import BLOCKED_KEY
@@ -42,14 +43,17 @@ class Admin(Cog):
 
     @command(hidden=True)
     @is_bot_admin()
-    async def promote(self, ctx, *, who: User):
+    async def promote(self, ctx: Context, *, who: User):
         """make someone global admin (danger!!)"""
+        if not await ctx.confirm(title='danger', description=f'make {who} a global admin?'):
+            return
+
         self.bot.config['admins'].append(who.id)
         await self.bot.save_config()
         await ctx.send(f'\N{OK HAND SIGN} made {who} a global admin.')
 
     async def flush_blocked_status(self, user: User):
-        with await self.bot.redis as conn:
+        with await self.redis as conn:
             log.info('flushing blocked status for %d', user.id)
             await conn.delete(BLOCKED_KEY.format(user))
 
