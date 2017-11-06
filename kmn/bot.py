@@ -22,11 +22,10 @@ PREFIXES_KEY = 'kmn:core:prefixes:{0.id}'
 async def prefix_handler(bot: 'Bot', msg: Message):
     await bot.wait_until_ready()
 
-    default_prefixes = bot.config.get('prefixes', ['k?'])
     mention_prefixes = [f'<@{bot.user.id}> ', f'<@!{bot.user.id}> ']
 
     if not msg.guild:
-        return default_prefixes + mention_prefixes
+        return bot.default_prefixes + mention_prefixes
 
     prefixes = await bot.get_prefixes_for(msg.guild)
     return mention_prefixes + prefixes
@@ -58,12 +57,16 @@ class Bot(DiscordBot):
         log.info('initial cog load')
         self.load_all_cogs()
 
+    @property
+    def default_prefixes(self):
+        return self.config.get('prefixes', ['k?'])
+
     async def get_prefixes_for(self, guild: Guild):
         key = PREFIXES_KEY.format(guild)
 
         with await self.redis as conn:
             if not await conn.exists(key):
-                await conn.sadd(key, 'k!', 'k?')
+                await conn.sadd(key, *self.default_prefixes)
             return await conn.smembers(key, encoding='utf-8')
 
     def load_all_cogs(self):
