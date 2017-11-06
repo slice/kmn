@@ -2,7 +2,7 @@ import random
 import re
 
 import discord
-from discord import User, Member, HTTPException
+from discord import User, HTTPException
 from discord.ext.commands import command, clean_content, cooldown, BucketType, guild_only, group
 
 from kmn.cog import Cog
@@ -14,7 +14,7 @@ RIGGED = {
     (162819866682851329, 138428648901312512)
 }
 STAB_KEY = 'kmn:fun:stabs:{0.id}'
-STAB_LOCK_KEY = 'kmn:fun:stab:lock:{0.id}'
+STAB_LOCK_KEY = 'kmn:fun:stab:lock:{0.id}:stabs:{1.id}'
 STAB_DURATION = 60 * 60  # 1 hour
 
 
@@ -24,11 +24,13 @@ class Fun(Cog):
     @guild_only()
     async def stab(self, ctx: Context, *, target: User):
         """stab someone"""
+        lock_key = STAB_LOCK_KEY.format(ctx.author, target)
+
         with await self.redis as conn:
-            if await conn.exists(STAB_LOCK_KEY.format(target)):
+            if await conn.exists(lock_key):
                 return await ctx.send(f'too soon, try stabbing {target.name} later!')
 
-            await conn.set(STAB_LOCK_KEY.format(target), 'haha yes', expire=STAB_DURATION)
+            await conn.set(lock_key, 'haha yes', expire=STAB_DURATION)
             await conn.incr(STAB_KEY.format(target))
 
             try:
@@ -59,8 +61,6 @@ class Fun(Cog):
     @command()
     async def owo(self, ctx: Context, *, text: clean_content):
         """hewwo!!"""
-
-        faces = ["(・`ω´・)", ";;w;;", "owo", "UwU", ">w<", "^w^"]
 
         replacement_table = {
             r'[rl]': 'w',           r'[RL]': 'W',
