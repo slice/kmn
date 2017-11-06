@@ -128,6 +128,8 @@ class Bot(DiscordBot):
     async def on_command_error(self, ctx, error):
         if isinstance(error, errors.UserInputError):
             await ctx.send(f'input error: {error}')
+        elif isinstance(error, errors.BotMissingPermissions) or isinstance(error, errors.MissingPermissions):
+            await ctx.send("uhh... " + str(error).lower())
         elif isinstance(error, errors.CheckFailure):
             await ctx.send("you can't do that.")
         elif isinstance(error, errors.NoPrivateMessage):
