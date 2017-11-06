@@ -1,7 +1,7 @@
 from functools import wraps
 
 import discord
-from discord import Color, Member, HTTPException, Role
+from discord import Color, Member, HTTPException, Role, Permissions
 from discord.ext.commands import command, has_permissions, group, bot_has_permissions
 
 from kmn.cog import Cog
@@ -24,6 +24,14 @@ class Mod(Cog):
     @bot_has_permissions(manage_roles=True)
     async def role(self, ctx):
         """manages roles"""
+
+    @role.command(name='vanity')
+    @has_permissions(manage_roles=True)
+    @bot_has_permissions(manage_roles=True)
+    async def role_vanity(self, ctx, *, name):
+        """makes a vanity role"""
+        await ctx.guild.create_role(name=name, permissions=Permissions.none(), reason=f'created by {ctx.author}')
+        await ctx.ok()
 
     @role.command(name='give')
     @prevent_escalate
