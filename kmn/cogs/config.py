@@ -27,8 +27,7 @@ SCHEMA_PRETTY = {
 
 class Config(Cog):
     SCHEMA = {
-        'message_logging': Field(type=pretty_boolean,
-                                 description='makes me log all messages i can see in this server.')
+        'message_logging': Field(type=pretty_boolean, description='makes me log all messages i can see in this server.')
     }
 
     @group(aliases=['config'])
