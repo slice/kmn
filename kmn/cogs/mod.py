@@ -2,7 +2,7 @@ from functools import wraps
 
 import discord
 from discord import Color, Member, HTTPException, Role, Permissions
-from discord.ext.commands import command, has_permissions, group, bot_has_permissions
+from discord.ext.commands import command, has_permissions, group, bot_has_permissions, guild_only
 
 from kmn.cog import Cog
 from kmn.converters import QuickPermissions
@@ -20,6 +20,7 @@ def prevent_escalate(func):
 
 class Mod(Cog):
     @group()
+    @guild_only()
     @has_permissions(manage_roles=True)
     @bot_has_permissions(manage_roles=True)
     async def role(self, ctx):
@@ -67,6 +68,7 @@ class Mod(Cog):
         await ctx.ok()
 
     @command()
+    @guild_only()
     @has_permissions(manage_roles=True)
     async def quickrole(self, ctx, role_name, permissions: QuickPermissions(humanize=True)=None, color: Color=None,
                         assign_to: Member=None):
