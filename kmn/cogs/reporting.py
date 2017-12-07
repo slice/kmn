@@ -13,12 +13,30 @@ from kmn.context import Context
 from kmn.errors import CommandFailure
 
 
-def trace(error: Exception):
+def trace(error: Exception) -> str:
     return ''.join(traceback.format_exception(type(error), error, error.__traceback__, limit=7))
 
 
 class Reporting(Cog):
     async def broadcast(self, stream: str, *args, **kwargs) -> Message:
+        """
+        Broadcasts a message to a channel specified in the configuration file.
+
+        Parameters
+        ----------
+        stream : str
+            The name of the stream to broadcast to.
+
+        Returns
+        -------
+        discord.Message
+            The sent message, if any.
+
+        Raises
+        ------
+        discord.HTTPException
+            If an error occurs broadcasting the message.
+        """
         channel = self.bot.get_channel(self.bot.config['streams'][stream])
 
         if not channel:
@@ -27,8 +45,8 @@ class Reporting(Cog):
         return await channel.send(*args, **kwargs)
 
     async def on_command_error(self, ctx: Context, error: Exception):
-        # Handler : String | Coroutine | Function
         # Matcher : { Class | Set<Class> }
+        # Handler : String | Coroutine | Function<P1=Exception, RET=String>
         # Handlers : Dict<K=Matcher, V=Handler>
         handlers = {
             errors.UserInputError: 'input error: {error}',
@@ -57,6 +75,7 @@ class Reporting(Cog):
                 raise TypeError(f'Unknown error handler type: {handler}')
 
         if isinstance(error, errors.CommandInvokeError):
+            # :class:`CommandFailure`s should be handled specifically.
             if isinstance(error.original, CommandFailure):
                 message = str(error.original).format(prefix=ctx.prefix)
                 await ctx.send(message)
@@ -82,7 +101,7 @@ class Reporting(Cog):
     @command(hidden=True)
     @is_bot_admin()
     async def __raise(self, ctx: Context, *, message):
-        """raise an error"""
+        """raise an error for debugging purposes"""
         raise RuntimeError(message)
 
 
