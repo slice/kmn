@@ -71,6 +71,7 @@ class Reporting(Cog):
             elif callable(handler):
                 # send callable return
                 await ctx.send(await maybe_coroutine(handler, error))
+                return
             else:
                 raise TypeError(f'Unknown error handler type: {handler}')
 
