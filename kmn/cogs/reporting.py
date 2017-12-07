@@ -18,6 +18,10 @@ def trace(error: Exception):
 class Reporting(Cog):
     async def broadcast(self, stream: str, *args, **kwargs) -> Message:
         channel = self.bot.get_channel(self.bot.config['streams'][stream])
+
+        if not channel:
+            raise RuntimeError('Stream channel %s was not found.', stream)
+
         return await channel.send(*args, **kwargs)
 
     async def on_command_error(self, ctx: Context, error: Exception):
@@ -32,7 +36,8 @@ class Reporting(Cog):
         elif isinstance(error, errors.CommandInvokeError):
             if isinstance(error.original, CommandFailure):
                 message = str(error.original).format(prefix=ctx.prefix)
-                return await ctx.send(message)
+                await ctx.send(message)
+                return
 
             await ctx.send('a fatal error has occurred.')
 
