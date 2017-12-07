@@ -1,8 +1,10 @@
+import inspect
 import traceback
 
 import datetime
 from discord import Guild, Message, Embed, Color
 from discord.ext.commands import errors, command
+from discord.utils import maybe_coroutine
 
 from kmn.bot import Bot
 from kmn.checks import is_bot_admin
@@ -25,15 +27,36 @@ class Reporting(Cog):
         return await channel.send(*args, **kwargs)
 
     async def on_command_error(self, ctx: Context, error: Exception):
-        if isinstance(error, errors.UserInputError):
-            await ctx.send(f'input error: {error}')
-        elif isinstance(error, errors.BotMissingPermissions) or isinstance(error, errors.MissingPermissions):
-            await ctx.send("uhh... " + str(error).lower())
-        elif isinstance(error, errors.CheckFailure):
-            await ctx.send("you can't do that.")
-        elif isinstance(error, errors.NoPrivateMessage):
-            await ctx.send("you can't do that in a direct message.")
-        elif isinstance(error, errors.CommandInvokeError):
+        # Handler : String | Coroutine | Function
+        # Matcher : { Class | Set<Class> }
+        # Handlers : Dict<K=Matcher, V=Handler>
+        handlers = {
+            errors.UserInputError: 'input error: {error}',
+            (errors.MissingPermissions, errors.BotMissingPermissions): lambda error: f'uhh... {str(error).lower()}',
+            errors.CheckFailure: "you can't do that.",
+            errors.NoPrivateMessage: "you can't do that in a dm."
+        }
+
+        for matcher, handler in handlers.items():
+            matcher_set_satisfied = \
+                isinstance(matcher, tuple) and any(type(error) is item for item in matcher)
+            singular_match_satisfied = \
+                inspect.isclass(matcher) and type(error) is matcher
+
+            if not matcher_set_satisfied and not singular_match_satisfied:
+                continue
+
+            if isinstance(handler, str):
+                # simple string send sending
+                await ctx.send(handler.format(error=error))
+                return
+            elif callable(handler):
+                # send callable return
+                await ctx.send(await maybe_coroutine(handler, error))
+            else:
+                raise TypeError(f'Unknown error handler type: {handler}')
+
+        if isinstance(error, errors.CommandInvokeError):
             if isinstance(error.original, CommandFailure):
                 message = str(error.original).format(prefix=ctx.prefix)
                 await ctx.send(message)
