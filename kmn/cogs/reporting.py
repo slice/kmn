@@ -82,7 +82,7 @@ class Reporting(Cog):
                 await ctx.send(message)
                 return
 
-            await ctx.send('a fatal error has occurred.')
+            await ctx.send('a fatal error has occurred, sorry about that.')
 
             embed = Embed(title='fatal error', description=f'```py\n{trace(error.original)}\n```', color=Color.red())
             embed.add_field(name='invoker', value=f'{ctx.author} `{ctx.author.id}`')
