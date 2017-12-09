@@ -4,6 +4,7 @@ from discord import Color, Embed, HTTPException
 from discord.ext.commands import group, guild_only, clean_content, has_permissions
 
 from kmn.bot import PREFIXES_KEY
+from kmn.checks import is_bot_admin
 from kmn.cog import Cog
 from kmn.context import Context
 
@@ -45,7 +46,16 @@ class Config(Cog):
             await ctx.guild.me.edit(nick=nick)
             await ctx.ok()
         except HTTPException as err:
-            await ctx.send(f'failed to edit nick: `{err}`')
+            await ctx.fail('edit nick', err)
+
+    @cfg.command()
+    @is_bot_admin()
+    async def username(self, ctx, *, username: clean_content):
+        """change the username of the bot"""
+        try:
+            await ctx.bot.user.edit(username=username)
+        except HTTPException as err:
+            await ctx.fail('edit username', err)
 
     @cfg.group()
     @guild_only()
