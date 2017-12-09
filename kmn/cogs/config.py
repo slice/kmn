@@ -54,6 +54,7 @@ class Config(Cog):
         """change the username of the bot"""
         try:
             await ctx.bot.user.edit(username=username)
+            await ctx.ok()
         except HTTPException as err:
             await ctx.fail('edit username', err)
 
