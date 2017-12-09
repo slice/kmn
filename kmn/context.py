@@ -4,8 +4,7 @@ Custom command context for kmn.
 Most of the database-management code was stolen from Danny (@Rapptz on GitHub). Thanks!
 """
 
-import discord
-from discord import Color, Embed
+from discord import Color, Embed, HTTPException
 from discord.ext.commands import Context as DiscordContext
 
 from kmn.guild_config import GuildConfig
@@ -53,10 +52,18 @@ class Context(DiscordContext):
         for coro in chain:
             try:
                 await coro
-            except discord.HTTPException:
+            except HTTPException:
                 pass
             else:
                 break
+
+    async def fail(self, action: str, exception: Exception):
+        await self.ok('\N{BROKEN HEART}')
+
+        try:
+            await self.send(f'failed to {action}: `{exception}`')
+        except HTTPException:
+            pass
 
     async def _acquire(self, timeout):
         if self.db is None:
@@ -77,7 +84,7 @@ class Context(DiscordContext):
         # send embed
         try:
             message = await self.send(embed=embed)
-        except discord.HTTPException:
+        except HTTPException:
             return False
 
         reactions = {
@@ -89,7 +96,7 @@ class Context(DiscordContext):
         for reaction in reactions.keys():
             try:
                 await message.add_reaction(reaction)
-            except discord.HTTPException:
+            except HTTPException:
                 return False
 
         # only accept reactions from the same person and channel
