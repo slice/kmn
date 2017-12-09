@@ -1,5 +1,5 @@
 git+https://github.com/Rapptz/discord.py@rewrite
 python-whois==0.6.5
 asyncpg
-aioredis
+aioredis==0.3.3
 arrow
