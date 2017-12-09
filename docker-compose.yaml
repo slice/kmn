@@ -1,0 +1,19 @@
+version: '2'
+services:
+  bot:
+    build: .
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+    - ./:/app
+  redis:
+    image: redis:latest
+    command: redis-server --appendonly yes
+    volumes:
+      - ./data/redis:/data
+  postgres:
+    image: postgres:10
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
