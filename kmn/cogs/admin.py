@@ -27,6 +27,10 @@ async def shell(command):
 
 
 class Admin(Cog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.load_list = set(self.bot.extensions.copy().keys())
+
     @command()
     @is_bot_admin()
     async def die(self, ctx):
@@ -163,7 +167,7 @@ class Admin(Cog):
         progress = await ctx.send('reloading...')
 
         with Timer() as t:
-            for name, ext in ctx.bot.extensions.copy().items():
+            for name in self.load_list:
                 try:
                     ctx.bot.unload_extension(name)
                     ctx.bot.load_extension(name)
