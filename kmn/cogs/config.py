@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from discord import Color, Embed
+from discord import Color, Embed, HTTPException
 from discord.ext.commands import group, guild_only, clean_content, has_permissions
 
 from kmn.bot import PREFIXES_KEY
@@ -35,6 +35,17 @@ class Config(Cog):
     @guild_only()
     async def cfg(self, ctx):
         """manages this server's configuration"""
+
+    @cfg.command()
+    @guild_only()
+    @has_permissions(manage_nicknames=True)
+    async def nick(self, ctx, *, nick: clean_content):
+        """change the nickname of the bot"""
+        try:
+            await ctx.guild.me.edit(nick=nick)
+            await ctx.ok()
+        except HTTPException as err:
+            await ctx.send(f'failed to edit nick: `{err}`')
 
     @cfg.group()
     @guild_only()
