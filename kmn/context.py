@@ -44,11 +44,11 @@ class Context(DiscordContext):
         self.db = None
 
     async def ok(self, emoji='\N{OK HAND SIGN}'):
-        chain = {
+        chain = [
             self.message.add_reaction(emoji),
             self.send(emoji),
             self.author.send(emoji)
-        }
+        ]
 
         for coro in chain:
             try:
