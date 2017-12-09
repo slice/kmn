@@ -44,10 +44,19 @@ class Context(DiscordContext):
         self.db = None
 
     async def ok(self, emoji='\N{OK HAND SIGN}'):
-        try:
-            await self.message.add_reaction(emoji)
-        except:
-            await self.send(emoji)
+        chain = {
+            self.message.add_reaction(emoji),
+            self.send(emoji),
+            self.author.send(emoji)
+        }
+
+        for coro in chain:
+            try:
+                await coro
+            except discord.HTTPException:
+                pass
+            else:
+                break
 
     async def _acquire(self, timeout):
         if self.db is None:
